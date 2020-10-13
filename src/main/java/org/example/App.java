@@ -1,11 +1,9 @@
 package org.example;
 
+import org.w3c.dom.ls.LSOutput;
+
 import java.sql.*;
 
-/**
- * Hello world!
- *
- */
 public class App
 {
     private static final String USER_NAME = "postgres";
@@ -14,45 +12,49 @@ public class App
 
     public static void main( String[] args )
     {
-        System.out.println( "Hello World!" );
-        //printDAtaTable();
-        insertIntoTable("Porc12he", 15L, "Red");
-        printDAtaTable();
+        checkMyName("Васильев", "Илья", "Николаевич");
     }
 
-
-    private static void printDAtaTable(){
+    private static void checkMyName(String lastname, String firstname, String middlename){
         try(Connection connection = DriverManager.getConnection(URL, USER_NAME, PASSWORD)){
+            //String.format как-то неправильно конвертит строку, так что sql выдает ошибку "Столбец "Васильев" не существует"
+            // Хотя в параметрах передаю верно. Поэтмоу решил использовать просто строку в качестве запроса
+            String query = "SELECT * FROM public.\"Person\" WHERE lastname = '" + lastname + "'AND firstname = '" + firstname + "'AND middlename = '" + middlename + "'";
             System.out.println("Connection with database 'testdb'");
-            System.out.println("Print all from table 'car'");
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM CAR");
-            System.out.printf("%-20s %20s %20s", "Model", "Price", "Color\n");
-            while(resultSet.next()){
-                System.out.printf(
-                        "%-20s %20s %20s",
-                        resultSet.getString("model"),
-                        resultSet.getString("price"),
-                        resultSet.getString("color")
-                );
-                System.out.println();
+            ResultSet resultSet = statement.executeQuery(query);
+            //System.out.printf("%-20s %20s %20s %s%n", "lastname", "firstname", "middlename", "id");
+            if(!resultSet.isBeforeFirst() ){
+                System.out.println("Твоих данных нет в таблице. Переходим к вставке значений");
+                insertIntoTable(lastname, firstname, middlename);
             }
+            else {
+                while (resultSet.next()) {
+                    System.out.printf(
+                            "%-50s %-50s %-50s %d",
+                            resultSet.getString("lastname"),
+                            resultSet.getString("firstname"),
+                            resultSet.getString("middlename"),
+                            resultSet.getInt("id")
+                    );
+                    System.out.println("Ты уже есть в таблице");
+                }
+           }
+            connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    private static void insertIntoTable(String model1, Long price1, String color1){
+    private static void insertIntoTable(String lastname, String firstname, String middlename){
         try(Connection connection = DriverManager.getConnection(URL, USER_NAME, PASSWORD)){
+            String query = "INSERT INTO public.\"Person\" VALUES('" + lastname + "','" + firstname + "','"+ middlename +"')";
             System.out.println("Connection with database 'testdb'");
             Statement statement = connection.createStatement();
-            System.out.printf("%-20s %20s %20s", "Model", "Price", "Color\n");
-            statement.execute(String.format(
-                    "INSERT INTO CAR VALUES(%s, %s, %s)",
-                    model1, price1, color1)
-            );
-            //statement.execute("INSERT INTO CAR VALUES(model1,price1,color1)");
-            System.out.printf("row (%s, %s, %s) was added/n", model1, price1, color1);
+            System.out.printf("%-20s %20s %20s", "Last Name", "First Name", "Middle Name\n");
+            statement.execute(query);
+            System.out.printf("row (%s, %s, %s) was added/n", lastname, firstname, middlename);
+            connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
